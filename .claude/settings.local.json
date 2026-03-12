@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(mkdir -p /Users/idanarad/Development/tour-planner)",
+      "Read(//Users/idanarad/Development/**)",
+      "Bash(npm run:*)",
+      "Bash(git:*)"
+    ]
+  }
+}

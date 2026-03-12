@@ -1,0 +1,4 @@
+- Functional components only, named exports preferred
+- Use `@/` import alias for all non-relative imports
+- Prefer Server Actions over API routes for mutations
+- Keep components small — extract when a file exceeds ~150 lines
