@@ -1,15 +1,39 @@
 import { createClient } from "@/lib/supabase/server";
 import { Send, FileText, BarChart3 } from "lucide-react";
+import { TemplateEditor } from "@/components/email/template-editor";
+import { EmailTimeline } from "@/components/email/email-timeline";
 
 export default async function EmailPage() {
   const supabase = await createClient();
 
+  // Get org_id from auth user
+  const { data: { user } } = await supabase.auth.getUser();
+  let orgId = "";
+  if (user) {
+    const { data: membership } = await supabase
+      .from("memberships")
+      .select("org_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .single();
+    orgId = membership?.org_id ?? "";
+  }
+
   const [templatesResult, messagesResult] = await Promise.all([
-    supabase.from("email_templates").select("*", { count: "exact", head: true }),
-    supabase.from("email_messages").select("status", { count: "exact" }),
+    supabase
+      .from("email_templates")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("email_messages")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
 
-  const templateCount = templatesResult.count ?? 0;
+  const templates = templatesResult.data ?? [];
   const messages = messagesResult.data ?? [];
   const sent = messages.filter((m) => m.status === "sent" || m.status === "delivered" || m.status === "opened").length;
   const opened = messages.filter((m) => m.status === "opened").length;
@@ -24,13 +48,14 @@ export default async function EmailPage() {
         </p>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <FileText className="h-5 w-5 text-violet-400" />
             Templates
           </div>
-          <p className="mt-1.5 text-3xl font-bold">{templateCount}</p>
+          <p className="mt-1.5 text-3xl font-bold">{templates.length}</p>
         </div>
         <div className="rounded-xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -53,14 +78,10 @@ export default async function EmailPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-border/50 bg-card/30 p-12 text-center">
-        <Send className="mx-auto h-10 w-10 text-muted-foreground/30" />
-        <p className="mt-4 text-muted-foreground">
-          Email automation is being set up. Configure your Resend API key in environment variables to get started.
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground/60">
-          Once configured, you can create templates, send pitch emails, and track opens/bounces.
-        </p>
+      {/* Templates + Timeline side by side */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <TemplateEditor orgId={orgId} templates={templates} />
+        <EmailTimeline emails={messages} />
       </div>
     </div>
   );
