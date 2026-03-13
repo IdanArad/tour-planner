@@ -1,4 +1,5 @@
 import type { BaseScraper } from "./base";
+import { FestivalAggregatorScraper } from "./festival-aggregator";
 import { MusicFestivalWizardScraper } from "./music-festival-wizard";
 import { SetlistfmScraper } from "./setlistfm";
 
@@ -9,6 +10,7 @@ import { SetlistfmScraper } from "./setlistfm";
 const scraperFactories: Record<string, () => BaseScraper> = {
   music_festival_wizard: () => new MusicFestivalWizardScraper(),
   setlistfm: () => new SetlistfmScraper(),
+  festival_aggregator: () => new FestivalAggregatorScraper(),
 };
 
 export function getScraper(sourceName: string): BaseScraper | null {
