@@ -1,7 +1,9 @@
 "use client";
 
-import { MapPin, Users, Mail, Globe, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { MapPin, Users, Mail, Globe, ExternalLink, Plus, Check, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { importVenue } from "@/lib/actions/discovery";
 
 interface VenueCardProps {
   venue: {
@@ -16,6 +18,7 @@ interface VenueCardProps {
     genres: string[] | null;
     source: string;
   };
+  orgId: string;
 }
 
 const typeLabels: Record<string, string> = {
@@ -30,36 +33,50 @@ const typeLabels: Record<string, string> = {
   event_planner: "Planner",
 };
 
-export function VenueCard({ venue }: VenueCardProps) {
+export function VenueCard({ venue, orgId }: VenueCardProps) {
+  const [status, setStatus] = useState<"idle" | "loading" | "imported" | "error">("idle");
+
+  async function handleImport() {
+    setStatus("loading");
+    const result = await importVenue(venue.id, orgId);
+    if (result.error) {
+      setStatus("error");
+      // Reset after a moment so they can retry
+      setTimeout(() => setStatus("idle"), 2000);
+    } else {
+      setStatus("imported");
+    }
+  }
+
   return (
-    <div className="group rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-violet-500/30 hover:shadow-lg hover:shadow-violet-500/5">
+    <div className="group flex flex-col rounded-xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm transition-all hover:border-violet-500/30 hover:shadow-lg hover:shadow-violet-500/5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-medium text-sm">{venue.name}</h3>
-          <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <MapPin className="h-3 w-3 shrink-0" />
+          <h3 className="truncate font-medium">{venue.name}</h3>
+          <div className="mt-1.5 flex items-center gap-2 text-sm text-muted-foreground">
+            <MapPin className="h-4 w-4 shrink-0" />
             <span className="truncate">
               {[venue.city, venue.country].filter(Boolean).join(", ") || "Unknown"}
             </span>
           </div>
         </div>
         {venue.venue_type && (
-          <Badge variant="secondary" className="shrink-0 text-[10px]">
+          <Badge variant="secondary" className="shrink-0 text-xs">
             {typeLabels[venue.venue_type] ?? venue.venue_type}
           </Badge>
         )}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
         {venue.capacity && (
-          <span className="flex items-center gap-1">
-            <Users className="h-3 w-3" />
+          <span className="flex items-center gap-1.5">
+            <Users className="h-4 w-4" />
             {venue.capacity.toLocaleString()}
           </span>
         )}
         {venue.booking_email && (
-          <span className="flex items-center gap-1 text-emerald-400">
-            <Mail className="h-3 w-3" />
+          <span className="flex items-center gap-1.5 text-emerald-400">
+            <Mail className="h-4 w-4" />
             Email
           </span>
         )}
@@ -68,27 +85,52 @@ export function VenueCard({ venue }: VenueCardProps) {
             href={venue.website_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 hover:text-violet-400 transition-colors"
+            className="flex items-center gap-1.5 hover:text-violet-400 transition-colors"
           >
-            <Globe className="h-3 w-3" />
+            <Globe className="h-4 w-4" />
             Website
-            <ExternalLink className="h-2.5 w-2.5" />
+            <ExternalLink className="h-3 w-3" />
           </a>
         )}
       </div>
 
       {venue.genres && venue.genres.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
+        <div className="mt-3 flex flex-wrap gap-1.5">
           {venue.genres.slice(0, 3).map((genre) => (
             <span
               key={genre}
-              className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] text-violet-300"
+              className="rounded-full bg-violet-500/10 px-2.5 py-1 text-xs text-violet-300"
             >
               {genre}
             </span>
           ))}
         </div>
       )}
+
+      <div className="mt-4 flex items-center justify-end pt-1">
+        <button
+          onClick={handleImport}
+          disabled={status === "loading" || status === "imported"}
+          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+            status === "imported"
+              ? "bg-emerald-500/15 text-emerald-400 cursor-default"
+              : status === "error"
+                ? "bg-red-500/15 text-red-400"
+                : status === "loading"
+                  ? "bg-violet-500/10 text-violet-300 cursor-wait"
+                  : "bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 hover:text-violet-200"
+          }`}
+        >
+          {status === "loading" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {status === "imported" && <Check className="h-3.5 w-3.5" />}
+          {status === "error" && <Plus className="h-3.5 w-3.5" />}
+          {status === "idle" && <Plus className="h-3.5 w-3.5" />}
+          {status === "idle" && "Import"}
+          {status === "loading" && "Importing..."}
+          {status === "imported" && "Imported"}
+          {status === "error" && "Failed"}
+        </button>
+      </div>
     </div>
   );
 }

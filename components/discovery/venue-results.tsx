@@ -9,12 +9,14 @@ export async function VenueResults({
   venueType,
   hasEmail,
   page,
+  orgId,
 }: {
   search?: string;
   country?: string;
   venueType?: string;
   hasEmail?: boolean;
   page: number;
+  orgId: string;
 }) {
   const { venues, count } = await getDiscoveredVenues({
     search,
@@ -43,7 +45,7 @@ export async function VenueResults({
     <>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {venues.map((venue) => (
-          <VenueCard key={venue.id} venue={venue} />
+          <VenueCard key={venue.id} venue={venue} orgId={orgId} />
         ))}
       </div>
       {totalPages > 1 && <Pagination current={page} total={totalPages} tab="venues" />}

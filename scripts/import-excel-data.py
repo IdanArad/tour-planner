@@ -18,6 +18,60 @@ import re
 import sys
 from datetime import datetime
 
+# Comprehensive country normalization map
+COUNTRY_MAP = {
+    # Full names → ISO
+    "Austria": "AT", "Belgium": "BE", "Bulgaria": "BG", "Canada": "CA",
+    "Croatia": "HR", "Czechia": "CZ", "Czech Republic": "CZ",
+    "Denmark": "DK", "Finland": "FI", "France": "FR", "Germany": "DE",
+    "Greece": "GR", "Hungary": "HU", "Iceland": "IS", "Ireland": "IE",
+    "Israel": "IL", "Italy": "IT", "Lithuania": "LT", "Latvia": "LV",
+    "Luxembourg": "LU", "Malta": "MT", "Netherlands": "NL", "Norway": "NO",
+    "Poland": "PL", "Portugal": "PT", "Romania": "RO", "Serbia": "RS",
+    "Slovakia": "SK", "Slovenia": "SI", "Spain": "ES", "Sweden": "SE",
+    "Switzerland": "CH", "UK": "GB", "United Kingdom": "GB",
+    "USA": "US", "Argentina": "AR", "Australia": "AU", "Estonia": "EE",
+    "Ukraine": "UA",
+    # ISO codes → themselves
+    "AT": "AT", "BE": "BE", "BG": "BG", "CA": "CA", "CH": "CH",
+    "CZ": "CZ", "DE": "DE", "DK": "DK", "EE": "EE", "ES": "ES",
+    "FI": "FI", "FR": "FR", "GB": "GB", "GR": "GR", "HR": "HR",
+    "HU": "HU", "IE": "IE", "IL": "IL", "IS": "IS", "IT": "IT",
+    "LT": "LT", "LU": "LU", "LV": "LV", "MT": "MT", "NL": "NL",
+    "NO": "NO", "PL": "PL", "PT": "PT", "RO": "RO", "RS": "RS",
+    "SE": "SE", "SI": "SI", "SK": "SK", "UA": "UA", "US": "US",
+    "AR": "AR", "AU": "AU",
+    # Messy values from the Excel data
+    "USA Ohio": "US", "USA/ CA": "US", "USA?": "US", "US?": "US",
+    "global based US": "US", "BE?": "BE", "Ukraine?": "UA",
+    "SL": "SI",  # SL likely means Slovenia
+    "switzerland": "CH",
+}
+
+# Values to skip (not a single country)
+SKIP_COUNTRY = {
+    "Europe", "EU", "WW", "worldwide", "CH EU WW", "EU / Worldwide",
+    "EU UK Latin america", "EU\\uk", "uk\\eu", "FR/CH",
+    "UK / USA / GR",
+}
+
+
+def normalize_country(raw):
+    """Normalize a country value to ISO 2-letter code."""
+    if not raw:
+        return None
+    s = str(raw).strip()
+    if s in SKIP_COUNTRY:
+        return None
+    # Direct lookup
+    if s in COUNTRY_MAP:
+        return COUNTRY_MAP[s]
+    # Try with "DE Hannover" → "DE"
+    prefix = s.split()[0] if " " in s else s
+    if prefix in COUNTRY_MAP:
+        return COUNTRY_MAP[prefix]
+    return None
+
 
 def escape_sql(val):
     """Escape a string for SQL insertion."""
@@ -27,17 +81,6 @@ def escape_sql(val):
     if not s:
         return "NULL"
     return "'" + s.replace("'", "''") + "'"
-
-
-def to_array(items):
-    """Convert a list to a PostgreSQL array literal."""
-    if not items:
-        return "NULL"
-    cleaned = [i.strip() for i in items if i and i.strip()]
-    if not cleaned:
-        return "NULL"
-    escaped = [i.replace("'", "''") for i in cleaned]
-    return "ARRAY[" + ", ".join(f"'{i}'" for i in escaped) + "]"
 
 
 def clean_email(val):
@@ -64,21 +107,24 @@ def import_venues():
     """Import venues from Venues.xlsx."""
     wb = openpyxl.load_workbook("researched-data/Venues.xlsx", read_only=True)
     venues = []
+    idx = 0
 
     # Berlin sheet: Name, Size, Mail, Notes, summer 25, winter 26
     ws = wb["Berlin"]
     rows = list(ws.iter_rows(values_only=True))
     for row in rows[1:]:
-        if len(row) < 2: continue
+        if len(row) < 2:
+            continue
         name = row[0]
         size = row[1] if len(row) > 1 else None
         mail = row[2] if len(row) > 2 else None
         notes = row[3] if len(row) > 3 else None
         if not name or not str(name).strip():
             continue
+        idx += 1
         venues.append({
             "source": "excel_import",
-            "source_id": f"berlin_{len(venues)}",
+            "source_id": f"berlin_{idx}",
             "name": str(name).strip(),
             "city": "Berlin",
             "country": "DE",
@@ -91,14 +137,16 @@ def import_venues():
     ws = wb["Germany"]
     rows = list(ws.iter_rows(values_only=True))
     for row in rows[1:]:
-        if len(row) < 5: continue
+        if len(row) < 5:
+            continue
         vals = list(row) + [None] * (9 - len(row))
-        country, _, _, city, venue_name, link, mail, guarantee, notes = vals[:9]
+        _, _, _, city, venue_name, link, mail, guarantee, notes = vals[:9]
         if not venue_name or not str(venue_name).strip():
             continue
+        idx += 1
         venues.append({
             "source": "excel_import",
-            "source_id": f"germany_{len(venues)}",
+            "source_id": f"germany_{idx}",
             "name": str(venue_name).strip(),
             "city": str(city).strip() if city else None,
             "country": "DE",
@@ -112,27 +160,17 @@ def import_venues():
     ws = wb["Europe"]
     rows = list(ws.iter_rows(values_only=True))
     for row in rows[1:]:
-        if len(row) < 4: continue
+        if len(row) < 4:
+            continue
         vals = list(row) + [None] * (8 - len(row))
         country, _, city, venue_name, link, mail, guarantee, notes = vals[:8]
         if not venue_name or not str(venue_name).strip():
             continue
-        # Map country names to ISO codes
-        country_map = {
-            "Austria": "AT", "Poland": "PL", "Hungary": "HU", "Czechia": "CZ",
-            "Czech Republic": "CZ", "Netherlands": "NL", "Belgium": "BE",
-            "France": "FR", "Italy": "IT", "Spain": "ES", "Portugal": "PT",
-            "Switzerland": "CH", "Sweden": "SE", "Norway": "NO", "Denmark": "DK",
-            "Finland": "FI", "UK": "GB", "United Kingdom": "GB", "Ireland": "IE",
-            "Romania": "RO", "Bulgaria": "BG", "Croatia": "HR", "Serbia": "RS",
-            "Slovenia": "SI", "Slovakia": "SK", "Lithuania": "LT", "Latvia": "LV",
-            "Estonia": "EE", "Greece": "GR", "Luxembourg": "LU",
-        }
-        c = str(country).strip() if country else ""
-        cc = country_map.get(c, c[:2].upper() if c else None)
+        cc = normalize_country(country)
+        idx += 1
         venues.append({
             "source": "excel_import",
-            "source_id": f"europe_{len(venues)}",
+            "source_id": f"europe_{idx}",
             "name": str(venue_name).strip(),
             "city": str(city).strip() if city else None,
             "country": cc,
@@ -145,7 +183,7 @@ def import_venues():
     # Israel sheet (offset header on row 2)
     ws = wb["Israel"]
     rows = list(ws.iter_rows(values_only=True))
-    for row in rows[2:]:  # skip header rows
+    for row in rows[2:]:
         if len(row) < 4:
             continue
         area, venue_name, link, guarantee = row[0], row[1], row[2], row[3] if len(row) > 3 else None
@@ -153,9 +191,10 @@ def import_venues():
         contact = row[5] if len(row) > 5 else None
         if not venue_name or not str(venue_name).strip():
             continue
+        idx += 1
         venues.append({
             "source": "excel_import",
-            "source_id": f"israel_{len(venues)}",
+            "source_id": f"israel_{idx}",
             "name": str(venue_name).strip(),
             "city": str(area).strip() if area else "Israel",
             "country": "IL",
@@ -169,81 +208,67 @@ def import_venues():
 
 
 def import_festivals():
-    """Import festivals from Festivals.xlsx."""
+    """Import festivals from Festivals.xlsx (all sheets)."""
     wb = openpyxl.load_workbook("researched-data/Festivals.xlsx", read_only=True)
     events = []
+    idx = 0
 
-    country_map = {
-        "Austria": "AT", "Poland": "PL", "Hungary": "HU", "Czechia": "CZ",
-        "Czech Republic": "CZ", "Netherlands": "NL", "Belgium": "BE",
-        "France": "FR", "Italy": "IT", "Spain": "ES", "Portugal": "PT",
-        "Switzerland": "CH", "Sweden": "SE", "Norway": "NO", "Denmark": "DK",
-        "Finland": "FI", "UK": "GB", "United Kingdom": "GB", "Ireland": "IE",
-        "Romania": "RO", "Bulgaria": "BG", "Croatia": "HR", "Serbia": "RS",
-        "Slovenia": "SI", "Slovakia": "SK", "Lithuania": "LT", "Latvia": "LV",
-        "Estonia": "EE", "Greece": "GR", "Germany": "DE", "DE": "DE",
-        "Luxembourg": "LU",
-    }
-
-    # 2026 sheet: Country, Status, IG, Followup, Name, Dates, Web, Mail, Application dates, Notes
-    ws = wb["2026"]
-    rows = list(ws.iter_rows(values_only=True))
-    for row in rows[1:]:
-        country, status, _, _, name, dates, web, mail = row[:8]
-        app_dates = row[8] if len(row) > 8 else None
-        notes = row[9] if len(row) > 9 else None
-        if not name or not str(name).strip():
+    # Sheets: 2025, 2026, 2027 all have same structure:
+    # Country, Status, IG, Followup, Name, Dates, Web, Mail, Application dates, Notes
+    # (2027 has Month instead of Followup at col 2)
+    for year_sheet in ["2025", "2026", "2027"]:
+        if year_sheet not in wb.sheetnames:
             continue
-        c = str(country).strip() if country else ""
-        cc = country_map.get(c, c[:2].upper() if c else None)
-        events.append({
-            "source": "excel_import",
-            "source_id": f"fest2026_{len(events)}",
-            "name": str(name).strip(),
-            "country": cc,
-            "website_url": str(web).strip() if web and "http" in str(web) else None,
-            "booking_email": clean_email(mail),
-            "dates_raw": str(dates).strip() if dates else None,
-            "status": str(status).strip() if status else None,
-            "notes": notes,
-            "event_type": "festival",
-        })
+        ws = wb[year_sheet]
+        rows = list(ws.iter_rows(values_only=True))
+        headers = [str(c).lower() if c else "" for c in rows[0]]
 
-    # 2027 sheet: Country, Status, Month, Name, Dates, Web, Mail, Application dates, Notes
-    ws = wb["2027"]
-    rows = list(ws.iter_rows(values_only=True))
-    for row in rows[1:]:
-        country, status, month, name, dates, web, mail = row[:7]
-        if not name or not str(name).strip():
-            continue
-        c = str(country).strip() if country else ""
-        cc = country_map.get(c, c[:2].upper() if c else None)
-        events.append({
-            "source": "excel_import",
-            "source_id": f"fest2027_{len(events)}",
-            "name": str(name).strip(),
-            "country": cc,
-            "website_url": str(web).strip() if web and "http" in str(web) else None,
-            "booking_email": clean_email(mail),
-            "dates_raw": str(dates).strip() if dates else None,
-            "status": str(status).strip() if status else None,
-            "event_type": "festival",
-        })
+        # Find column positions
+        name_col = next((i for i, h in enumerate(headers) if h == "name"), 4)
+        country_col = next((i for i, h in enumerate(headers) if h == "country"), 0)
+        status_col = next((i for i, h in enumerate(headers) if h == "status"), 1)
+        dates_col = next((i for i, h in enumerate(headers) if h == "dates"), 5)
+        web_col = next((i for i, h in enumerate(headers) if h == "web"), 6)
+        mail_col = next((i for i, h in enumerate(headers) if h == "mail"), 7)
+
+        for row in rows[1:]:
+            vals = list(row) + [None] * 12
+            name = vals[name_col]
+            if not name or not str(name).strip():
+                continue
+            country = vals[country_col]
+            cc = normalize_country(country)
+            web = vals[web_col]
+            mail = vals[mail_col]
+            dates = vals[dates_col]
+            status = vals[status_col]
+            idx += 1
+            events.append({
+                "source": f"excel_import",
+                "source_id": f"fest{year_sheet}_{idx}",
+                "name": str(name).strip(),
+                "country": cc,
+                "website_url": str(web).strip() if web and "http" in str(web) else None,
+                "booking_email": clean_email(mail),
+                "dates_raw": str(dates).strip() if dates else None,
+                "status": str(status).strip() if status else None,
+                "event_type": "festival",
+            })
 
     # festivalticker sheet: Country, Status, IG, Name, City, Dates, Website, Mail, Notes
     if "List from festivalticker" in wb.sheetnames:
         ws = wb["List from festivalticker"]
         rows = list(ws.iter_rows(values_only=True))
         for row in rows[1:]:
-            country, status, _, name, city, dates, web, mail = row[:8]
-            notes = row[8] if len(row) > 8 else None
+            vals = list(row) + [None] * 10
+            country, status, _, name, city, dates, web, mail, notes = vals[:9]
             if not name or not str(name).strip():
                 continue
-            c = str(country).strip() if country else ""
-            cc = country_map.get(c, c[:2].upper() if c else None)
+            cc = normalize_country(country)
+            idx += 1
             events.append({
                 "source": "excel_festivalticker",
-                "source_id": f"festivalticker_{len(events)}",
+                "source_id": f"festivalticker_{idx}",
                 "name": str(name).strip(),
                 "city": str(city).strip() if city else None,
                 "country": cc,
@@ -262,22 +287,22 @@ def import_bookings():
     """Import booking agencies/promoters from Bookings & Promoters.xlsx."""
     wb = openpyxl.load_workbook("researched-data/Bookings & Promoters .xlsx", read_only=True)
     contacts = []
-
-    country_map = {
-        "DE": "DE", "UK": "GB", "CZ": "CZ", "USA": "US", "Europe": None,
-    }
+    idx = 0
 
     # Germany sheet: City, Name, Website, Email, Phone, Mail Sent, Follow up, Tour Message, Notes
     ws = wb["Germany"]
     rows = list(ws.iter_rows(values_only=True))
     for row in rows[1:]:
-        city, name, website, email, phone = row[:5]
-        mail_sent = row[5] if len(row) > 5 else None
-        notes = row[8] if len(row) > 8 else None
+        vals = list(row) + [None] * 10
+        city, name, website, email, phone = vals[:5]
+        mail_sent = vals[5]
+        notes = vals[8]
         if not name or not str(name).strip():
             continue
+        idx += 1
         contacts.append({
             "source": "excel_import",
+            "source_id": f"booking_de_{idx}",
             "name": str(name).strip(),
             "city": str(city).strip() if city else None,
             "country": "DE",
@@ -293,15 +318,17 @@ def import_bookings():
     ws = wb["Europe"]
     rows = list(ws.iter_rows(values_only=True))
     for row in rows[1:]:
-        country, name, website, email, phone = row[:5]
-        mail_sent = row[5] if len(row) > 5 else None
-        notes = row[8] if len(row) > 8 else None
+        vals = list(row) + [None] * 10
+        country, name, website, email, phone = vals[:5]
+        mail_sent = vals[5]
+        notes = vals[8]
         if not name or not str(name).strip():
             continue
-        c = str(country).strip() if country else ""
-        cc = country_map.get(c, c[:2].upper() if c else None)
+        cc = normalize_country(country)
+        idx += 1
         contacts.append({
             "source": "excel_import",
+            "source_id": f"booking_eu_{idx}",
             "name": str(name).strip(),
             "country": cc,
             "website_url": str(website).strip() if website and "http" in str(website) else None,
@@ -311,20 +338,72 @@ def import_bookings():
             "outreach_status": str(mail_sent).strip() if mail_sent else None,
         })
 
+    # USAOther sheet: Country, Name, Website, Email, Phone, First mail, Follow up mail
+    if "USAOther" in wb.sheetnames:
+        ws = wb["USAOther"]
+        rows = list(ws.iter_rows(values_only=True))
+        for row in rows[1:]:
+            vals = list(row) + [None] * 10
+            country, name, website, email, phone = vals[:5]
+            mail_sent = vals[5]
+            if not name or not str(name).strip():
+                continue
+            cc = normalize_country(country)
+            idx += 1
+            contacts.append({
+                "source": "excel_import",
+                "source_id": f"booking_us_{idx}",
+                "name": str(name).strip(),
+                "country": cc or "US",
+                "website_url": str(website).strip() if website and "http" in str(website) else None,
+                "booking_email": clean_email(email),
+                "phone": str(phone).strip() if phone else None,
+                "contact_type": "booking_agency",
+                "outreach_status": str(mail_sent).strip() if mail_sent else None,
+            })
+
+    # Support Slots sheet: Country, Name, Website, Email, Phone, First mail, Follow up mail
+    if "Support Slots" in wb.sheetnames:
+        ws = wb["Support Slots"]
+        rows = list(ws.iter_rows(values_only=True))
+        for row in rows[1:]:
+            vals = list(row) + [None] * 10
+            country, name, website, email, phone = vals[:5]
+            mail_sent = vals[5]
+            if not name or not str(name).strip():
+                continue
+            cc = normalize_country(country)
+            idx += 1
+            contacts.append({
+                "source": "excel_import",
+                "source_id": f"booking_support_{idx}",
+                "name": str(name).strip(),
+                "country": cc,
+                "website_url": str(website).strip() if website and "http" in str(website) else None,
+                "booking_email": clean_email(email),
+                "phone": str(phone).strip() if phone else None,
+                "contact_type": "booking_agency",
+                "outreach_status": str(mail_sent).strip() if mail_sent else None,
+            })
+
     # Promoters sheet: Country, Name, Website, Email, Phone, Mail Sent, Follow up, Notes
     if "Promoters " in wb.sheetnames:
         ws = wb["Promoters "]
         rows = list(ws.iter_rows(values_only=True))
         for row in rows[1:]:
-            country, name, website, email, phone = row[:5]
-            mail_sent = row[5] if len(row) > 5 else None
-            notes = row[7] if len(row) > 7 else None
+            vals = list(row) + [None] * 10
+            country, name, website, email, phone = vals[:5]
+            mail_sent = vals[5]
+            notes = vals[7]
             if not name or not str(name).strip():
                 continue
+            cc = normalize_country(country)
+            idx += 1
             contacts.append({
                 "source": "excel_import",
+                "source_id": f"promoter_{idx}",
                 "name": str(name).strip(),
-                "country": str(country).strip() if country else None,
+                "country": cc,
                 "website_url": str(website).strip() if website and "http" in str(website) else None,
                 "booking_email": clean_email(email),
                 "phone": str(phone).strip() if phone else None,
@@ -338,18 +417,45 @@ def import_bookings():
         ws = wb["Event Planners"]
         rows = list(ws.iter_rows(values_only=True))
         for row in rows[1:]:
-            country, name, website, email, phone = row[:5]
-            mail_sent = row[5] if len(row) > 5 else None
+            vals = list(row) + [None] * 10
+            country, name, website, email, phone = vals[:5]
+            mail_sent = vals[5]
             if not name or not str(name).strip():
                 continue
+            cc = normalize_country(country)
+            idx += 1
             contacts.append({
                 "source": "excel_import",
+                "source_id": f"planner_{idx}",
                 "name": str(name).strip(),
-                "country": str(country).strip() if country else None,
+                "country": cc,
                 "website_url": str(website).strip() if website and "http" in str(website) else None,
                 "booking_email": clean_email(email),
                 "phone": str(phone).strip() if phone else None,
                 "contact_type": "event_planner",
+            })
+
+    # Booking W festivals sheet (header in row 2): Country, Booking Agency, Link, Email, Phone, Email Status
+    if "Booking W festivals" in wb.sheetnames:
+        ws = wb["Booking W festivals"]
+        rows = list(ws.iter_rows(values_only=True))
+        for row in rows[2:]:  # skip title row + header row
+            vals = list(row) + [None] * 10
+            country, name, link, email, phone, mail_status = vals[:6]
+            if not name or not str(name).strip():
+                continue
+            cc = normalize_country(country)
+            idx += 1
+            contacts.append({
+                "source": "excel_import",
+                "source_id": f"booking_fest_{idx}",
+                "name": str(name).strip(),
+                "country": cc,
+                "website_url": str(link).strip() if link and "http" in str(link) else None,
+                "booking_email": clean_email(email),
+                "phone": str(phone).strip() if phone else None,
+                "contact_type": "booking_agency",
+                "outreach_status": str(mail_status).strip() if mail_status else None,
             })
 
     wb.close()
@@ -362,6 +468,11 @@ def main():
     print(f"-- Generated at: {datetime.now().isoformat()}")
     print()
     print("BEGIN;")
+    print()
+
+    # Clear previous imports
+    print("DELETE FROM discovered_events WHERE source IN ('excel_import', 'excel_festivalticker');")
+    print("DELETE FROM discovered_venues WHERE source = 'excel_import';")
     print()
 
     # Import venues
@@ -420,11 +531,11 @@ def main():
         phone = escape_sql(b.get("phone"))
         website = escape_sql(b.get("website_url"))
         contact_type = b.get("contact_type", "booking_agency")
+        source_id = escape_sql(b.get("source_id"))
         raw = escape_sql(json.dumps({k: str(v2) if v2 is not None else None for k, v2 in b.items()}, ensure_ascii=False))
 
-        # Store booking contacts in discovered_venues with a distinct venue_type
         print(f"INSERT INTO discovered_venues (source, source_id, name, city, country, booking_email, phone, website_url, venue_type, raw_data)")
-        print(f"VALUES ('excel_import', {escape_sql(f'booking_{contact_type}_{len(bookings)}')}, {name}, {city}, {country}, {email}, {phone}, {website}, '{contact_type}', {raw})")
+        print(f"VALUES ('excel_import', {source_id}, {name}, {city}, {country}, {email}, {phone}, {website}, '{contact_type}', {raw})")
         print(f"ON CONFLICT DO NOTHING;")
         print()
 
@@ -433,11 +544,24 @@ def main():
     print(f"-- Total: {len(venues)} venues, {len(events)} festivals, {len(bookings)} booking contacts")
 
     # Summary to stderr
+    # Collect country stats
+    all_countries = set()
+    for v in venues:
+        if v.get("country"):
+            all_countries.add(v["country"])
+    for e in events:
+        if e.get("country"):
+            all_countries.add(e["country"])
+    for b in bookings:
+        if b.get("country"):
+            all_countries.add(b["country"])
+
     print(f"\nImport summary:", file=sys.stderr)
     print(f"  Venues:           {len(venues)}", file=sys.stderr)
     print(f"  Festivals:        {len(events)}", file=sys.stderr)
     print(f"  Booking contacts: {len(bookings)}", file=sys.stderr)
     print(f"  Total records:    {len(venues) + len(events) + len(bookings)}", file=sys.stderr)
+    print(f"  Countries:        {len(all_countries)} ({', '.join(sorted(all_countries))})", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -10,9 +10,9 @@ export function Header() {
   const { state } = useStore();
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border/50 bg-background/80 px-6 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border/50 bg-background/80 px-8 backdrop-blur-xl">
       <div className="flex items-center gap-3">
-        <h2 className="text-sm font-semibold">{state.artist.name}</h2>
+        <h2 className="font-semibold">{state.artist.name}</h2>
         {state.artist.genre && (
           <Badge variant="secondary" className="text-xs font-normal">
             {state.artist.genre}
