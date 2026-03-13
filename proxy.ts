@@ -37,7 +37,13 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup");
 
-  if (!user && !isAuthRoute) {
+  // API routes that handle their own auth (cron, webhooks, scrape triggers)
+  const isSelfAuthedApi =
+    request.nextUrl.pathname.startsWith("/api/cron/") ||
+    request.nextUrl.pathname.startsWith("/api/webhooks/") ||
+    request.nextUrl.pathname.startsWith("/api/scrape/");
+
+  if (!user && !isAuthRoute && !isSelfAuthedApi) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
