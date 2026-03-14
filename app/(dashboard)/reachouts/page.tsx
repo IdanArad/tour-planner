@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReachoutsTable } from "@/components/reachouts/reachouts-table";
+import { ReachoutForm } from "@/components/reachouts/reachout-form";
 import { useStore } from "@/lib/store";
 
 type FilterKey = "all" | "awaiting" | "follow_up" | "replied" | "declined";
@@ -18,6 +20,7 @@ const filters: { value: FilterKey; label: string }[] = [
 export default function ReachoutsPage() {
   const { state } = useStore();
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [showForm, setShowForm] = useState(false);
 
   const filtered = (() => {
     switch (filter) {
@@ -38,9 +41,18 @@ export default function ReachoutsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Reachouts</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Track venue outreach and responses</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Reachouts</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Track venue outreach and responses</p>
+        </div>
+        <button
+          onClick={() => setShowForm(true)}
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4" />
+          New Reachout
+        </button>
       </div>
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterKey)}>
@@ -54,6 +66,8 @@ export default function ReachoutsPage() {
       </Tabs>
 
       <ReachoutsTable reachouts={sorted} />
+
+      <ReachoutForm open={showForm} onClose={() => setShowForm(false)} />
     </div>
   );
 }

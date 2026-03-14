@@ -104,6 +104,7 @@ export interface Tour {
 // --- Store state ---
 
 export interface AppState {
+  orgId: string;
   artist: Artist;
   tours: Tour[];
   shows: Show[];

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Pencil, Sparkles } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { ReachoutStatusBadge } from "@/components/reachouts/reachout-status-badge";
 import { PitchGenerator } from "@/components/reachouts/pitch-generator";
+import { ReachoutForm } from "@/components/reachouts/reachout-form";
 import { useStore, getVenueById, getContactById } from "@/lib/store";
 import type { Reachout, ReachoutStatus } from "@/types";
 
@@ -25,6 +26,7 @@ function formatDate(iso?: string) {
 
 export function ReachoutsTable({ reachouts }: { reachouts: Reachout[] }) {
   const { state, dispatch } = useStore();
+  const [editReachout, setEditReachout] = useState<Reachout | null>(null);
   const [pitchTarget, setPitchTarget] = useState<{
     reachoutId: string;
     venueName: string;
@@ -73,21 +75,30 @@ export function ReachoutsTable({ reachouts }: { reachouts: Reachout[] }) {
                     </TableCell>
                     <TableCell className="whitespace-nowrap">{formatDate(r.lastFollowUp)}</TableCell>
                     <TableCell>
-                      <button
-                        onClick={() =>
-                          setPitchTarget({
-                            reachoutId: r.id,
-                            venueName: venue?.name ?? "Unknown Venue",
-                            venueCity: venue?.city,
-                            venueCountry: venue?.country,
-                          })
-                        }
-                        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-violet-400 transition-colors hover:bg-violet-500/10"
-                        title="Generate AI pitch email"
-                      >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Pitch
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() =>
+                            setPitchTarget({
+                              reachoutId: r.id,
+                              venueName: venue?.name ?? "Unknown Venue",
+                              venueCity: venue?.city,
+                              venueCountry: venue?.country,
+                            })
+                          }
+                          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-violet-400 transition-colors hover:bg-violet-500/10"
+                          title="Generate AI pitch email"
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Pitch
+                        </button>
+                        <button
+                          onClick={() => setEditReachout(r)}
+                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                          title="Edit reachout"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -107,6 +118,10 @@ export function ReachoutsTable({ reachouts }: { reachouts: Reachout[] }) {
           artistGenre={state.artist.genre}
           onClose={() => setPitchTarget(null)}
         />
+      )}
+
+      {editReachout && (
+        <ReachoutForm open={true} onClose={() => setEditReachout(null)} reachout={editReachout} />
       )}
     </>
   );

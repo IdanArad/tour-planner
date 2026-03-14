@@ -29,11 +29,19 @@ import type {
 type Action =
   | { type: "ADD_SHOW"; payload: Show }
   | { type: "UPDATE_SHOW_STATUS"; payload: { id: string; status: ShowStatus } }
+  | { type: "DELETE_SHOW"; payload: string }
+  | { type: "ADD_VENUE"; payload: Venue }
+  | { type: "UPDATE_VENUE"; payload: Venue }
+  | { type: "DELETE_VENUE"; payload: string }
   | { type: "ADD_REACHOUT"; payload: Reachout }
   | {
       type: "UPDATE_REACHOUT_STATUS";
       payload: { id: string; status: ReachoutStatus };
-    };
+    }
+  | { type: "DELETE_REACHOUT"; payload: string }
+  | { type: "ADD_CONTACT"; payload: { venueId: string; contact: Contact } }
+  | { type: "DELETE_CONTACT"; payload: { venueId: string; contactId: string } }
+  | { type: "REFRESH" };
 
 // --- DB row → app type mappers ---
 
@@ -132,6 +140,7 @@ const StoreContext = createContext<{
 } | null>(null);
 
 const emptyState: AppState = {
+  orgId: "",
   artist: { id: "", name: "" },
   tours: [],
   shows: [],
@@ -145,6 +154,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const fetchAll = useCallback(async () => {
     const supabase = createClient();
+
+    // Get org_id from the user's membership
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    let orgId = "";
+    if (userId) {
+      const { data: membership } = await supabase
+        .from("memberships")
+        .select("org_id")
+        .eq("profile_id", userId)
+        .limit(1)
+        .single();
+      orgId = (membership?.org_id as string) ?? "";
+    }
 
     const [artistRes, toursRes, showsRes, venuesRes, reachoutsRes] =
       await Promise.all([
@@ -172,6 +195,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ]);
 
     setState({
+      orgId,
       artist: artistRes.data?.[0]
         ? mapArtist(artistRes.data[0] as Record<string, unknown>)
         : { id: "", name: "No Artist" },
@@ -208,7 +232,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     async (action: Action) => {
       switch (action.type) {
         case "UPDATE_SHOW_STATUS": {
-          // Optimistic update
           setState((prev) => ({
             ...prev,
             shows: prev.shows.map((s) =>
@@ -222,6 +245,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             action.payload.status
           );
           if (showResult?.error) fetchAll();
+          break;
+        }
+        case "DELETE_SHOW": {
+          setState((prev) => ({
+            ...prev,
+            shows: prev.shows.filter((s) => s.id !== action.payload),
+          }));
           break;
         }
         case "UPDATE_REACHOUT_STATUS": {
@@ -240,8 +270,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (reachoutResult?.error) fetchAll();
           break;
         }
+        case "DELETE_REACHOUT": {
+          setState((prev) => ({
+            ...prev,
+            reachouts: prev.reachouts.filter((r) => r.id !== action.payload),
+          }));
+          break;
+        }
+        case "DELETE_VENUE": {
+          setState((prev) => ({
+            ...prev,
+            venues: prev.venues.filter((v) => v.id !== action.payload),
+          }));
+          break;
+        }
+        case "DELETE_CONTACT": {
+          setState((prev) => ({
+            ...prev,
+            venues: prev.venues.map((v) =>
+              v.id === action.payload.venueId
+                ? { ...v, contacts: v.contacts.filter((c) => c.id !== action.payload.contactId) }
+                : v
+            ),
+          }));
+          break;
+        }
         case "ADD_SHOW":
         case "ADD_REACHOUT":
+        case "ADD_VENUE":
+        case "UPDATE_VENUE":
+        case "ADD_CONTACT":
+        case "REFRESH":
           fetchAll();
           break;
       }
