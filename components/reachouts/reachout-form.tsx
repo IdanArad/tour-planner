@@ -39,6 +39,10 @@ export function ReachoutForm({ open, onClose, reachout, prefilledVenueId }: Reac
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!state.orgId) {
+      setError("App data not loaded yet");
+      return;
+    }
     if (!venueId) {
       setError("Venue is required");
       return;

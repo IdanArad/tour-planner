@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { addArtist } from "@/lib/actions/artists";
 import { updateArtist } from "@/lib/actions/artists";
 
 export default function SettingsPage() {
-  const { state, dispatch } = useStore();
+  const { state, dispatch, loading } = useStore();
   const artist = state.artist;
+  const isNew = !artist.id;
 
-  const [name, setName] = useState(artist.name);
+  const [name, setName] = useState(artist.name === "No Artist" ? "" : artist.name);
   const [genre, setGenre] = useState(artist.genre ?? "");
   const [bio, setBio] = useState(artist.bio ?? "");
   const [contactEmail, setContactEmail] = useState(artist.contactEmail ?? "");
@@ -22,6 +24,21 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
+  // Sync form values when artist data loads from the store
+  useEffect(() => {
+    if (artist.id) {
+      setName(artist.name);
+      setGenre(artist.genre ?? "");
+      setBio(artist.bio ?? "");
+      setContactEmail(artist.contactEmail ?? "");
+      setContactPhone(artist.contactPhone ?? "");
+      setSpotifyUrl(artist.spotifyUrl ?? "");
+      setInstagramUrl(artist.instagramUrl ?? "");
+      setWebsiteUrl(artist.websiteUrl ?? "");
+      setHometown(artist.hometown ?? "");
+    }
+  }, [artist]);
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!name) {
@@ -32,25 +49,47 @@ export default function SettingsPage() {
     setError("");
     setSaved(false);
 
-    const result = await updateArtist(artist.id, {
-      name,
-      genre: genre || null,
-      bio: bio || null,
-      contact_email: contactEmail || null,
-      contact_phone: contactPhone || null,
-      spotify_url: spotifyUrl || null,
-      instagram_url: instagramUrl || null,
-      website_url: websiteUrl || null,
-      hometown: hometown || null,
-    });
-
-    setSaving(false);
-    if (result?.error) {
-      setError(result.error);
+    if (isNew) {
+      if (!state.orgId) {
+        setError("Organization not loaded yet");
+        setSaving(false);
+        return;
+      }
+      const result = await addArtist({
+        org_id: state.orgId,
+        name,
+        genre: genre || null,
+        contact_email: contactEmail || null,
+        contact_phone: contactPhone || null,
+      });
+      setSaving(false);
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        setSaved(true);
+        dispatch({ type: "REFRESH" });
+        setTimeout(() => setSaved(false), 2000);
+      }
     } else {
-      setSaved(true);
-      dispatch({ type: "REFRESH" });
-      setTimeout(() => setSaved(false), 2000);
+      const result = await updateArtist(artist.id, {
+        name,
+        genre: genre || null,
+        bio: bio || null,
+        contact_email: contactEmail || null,
+        contact_phone: contactPhone || null,
+        spotify_url: spotifyUrl || null,
+        instagram_url: instagramUrl || null,
+        website_url: websiteUrl || null,
+        hometown: hometown || null,
+      });
+      setSaving(false);
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        setSaved(true);
+        dispatch({ type: "REFRESH" });
+        setTimeout(() => setSaved(false), 2000);
+      }
     }
   }
 
@@ -58,12 +97,29 @@ export default function SettingsPage() {
     "w-full rounded-lg border border-border/50 bg-background px-3 py-2 text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/25";
   const labelClass = "block text-sm font-medium text-muted-foreground mb-1";
 
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Loading artist profile...</p>
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="text-sm">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your artist profile — this info is used for AI pitch generation
+          {isNew
+            ? "Set up your artist profile \u2014 this info is used for AI pitch generation"
+            : "Manage your artist profile \u2014 this info is used for AI pitch generation"}
         </p>
       </div>
 
@@ -77,17 +133,20 @@ export default function SettingsPage() {
           <div className="mt-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Artist Name *</label>
+                <label htmlFor="artist-name" className={labelClass}>Artist Name *</label>
                 <input
+                  id="artist-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  placeholder="Your artist or band name"
                   className={inputClass}
                 />
               </div>
               <div>
-                <label className={labelClass}>Genre</label>
+                <label htmlFor="genre" className={labelClass}>Genre</label>
                 <input
+                  id="genre"
                   type="text"
                   value={genre}
                   onChange={(e) => setGenre(e.target.value)}
@@ -98,8 +157,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className={labelClass}>Hometown</label>
+              <label htmlFor="hometown" className={labelClass}>Hometown</label>
               <input
+                id="hometown"
                 type="text"
                 value={hometown}
                 onChange={(e) => setHometown(e.target.value)}
@@ -109,8 +169,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className={labelClass}>Bio</label>
+              <label htmlFor="bio" className={labelClass}>Bio</label>
               <textarea
+                id="bio"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={4}
@@ -130,8 +191,9 @@ export default function SettingsPage() {
           <div className="mt-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Contact Email</label>
+                <label htmlFor="contact-email" className={labelClass}>Contact Email</label>
                 <input
+                  id="contact-email"
                   type="email"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
@@ -140,8 +202,9 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Contact Phone</label>
+                <label htmlFor="contact-phone" className={labelClass}>Contact Phone</label>
                 <input
+                  id="contact-phone"
                   type="tel"
                   value={contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
@@ -152,8 +215,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className={labelClass}>Spotify URL</label>
+              <label htmlFor="spotify-url" className={labelClass}>Spotify URL</label>
               <input
+                id="spotify-url"
                 type="url"
                 value={spotifyUrl}
                 onChange={(e) => setSpotifyUrl(e.target.value)}
@@ -163,8 +227,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className={labelClass}>Instagram URL</label>
+              <label htmlFor="instagram-url" className={labelClass}>Instagram URL</label>
               <input
+                id="instagram-url"
                 type="url"
                 value={instagramUrl}
                 onChange={(e) => setInstagramUrl(e.target.value)}
@@ -174,8 +239,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className={labelClass}>Website URL</label>
+              <label htmlFor="website-url" className={labelClass}>Website URL</label>
               <input
+                id="website-url"
                 type="url"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
@@ -203,10 +269,12 @@ export default function SettingsPage() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? "Saving..." : isNew ? "Create Profile" : "Save Changes"}
           </button>
           {saved && (
-            <span className="text-sm text-emerald-400">Changes saved</span>
+            <span className="text-sm text-emerald-400">
+              {isNew ? "Profile created" : "Changes saved"}
+            </span>
           )}
         </div>
       </form>

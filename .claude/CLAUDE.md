@@ -11,12 +11,16 @@ GitHub: https://github.com/IdanArad/tour-planner
 ## Commands
 
 ```bash
-npm run dev      # Start dev server at localhost:3000
-npm run build    # Production build
-npm run lint     # Run ESLint
+npm run dev          # Start dev server at localhost:3000
+npm run build        # Production build
+npm run lint         # Run ESLint
+npm run test         # Run all Playwright E2E tests
+npm run test:smoke   # Smoke tests (pages load correctly)
+npm run test:settings # Settings page tests
+npm run test:crud    # CRUD form tests
 ```
 
-No test runner yet — plan to add Vitest + Playwright when needed.
+E2E tests require `TEST_EMAIL` and `TEST_PASSWORD` env vars and a running dev server.
 
 ## Stack
 

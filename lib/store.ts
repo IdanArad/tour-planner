@@ -168,7 +168,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const { data: membership } = await supabase
         .from("memberships")
         .select("org_id")
-        .eq("profile_id", userId)
+        .eq("user_id", userId)
         .limit(1)
         .single();
       orgId = (membership?.org_id as string) ?? "";

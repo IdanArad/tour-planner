@@ -26,6 +26,10 @@ export function VenueForm({ open, onClose, venue }: VenueFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!state.orgId) {
+      setError("App data not loaded yet");
+      return;
+    }
     if (!name || !city) {
       setError("Name and city are required");
       return;

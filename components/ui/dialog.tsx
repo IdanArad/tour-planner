@@ -17,7 +17,7 @@ export function Dialog({ open, onClose, title, description, children }: DialogPr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 mx-4 w-full max-w-lg rounded-2xl border border-border/50 bg-card p-6 shadow-2xl">
+      <div role="dialog" aria-modal="true" className="relative z-10 mx-4 w-full max-w-lg rounded-2xl border border-border/50 bg-card p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold">{title}</h3>

@@ -48,6 +48,10 @@ export function ShowForm({ open, onClose, show }: ShowFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!state.orgId || !state.artist.id) {
+      setError("App data not loaded yet");
+      return;
+    }
     if (!venueId || !date) {
       setError("Venue and date are required");
       return;
