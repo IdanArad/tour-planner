@@ -13,6 +13,7 @@ import {
 import { ReachoutStatusBadge } from "@/components/reachouts/reachout-status-badge";
 import { PitchGenerator } from "@/components/reachouts/pitch-generator";
 import { ReachoutForm } from "@/components/reachouts/reachout-form";
+import { ReachoutDetail } from "@/components/reachouts/reachout-detail";
 import { useStore, getVenueById, getContactById } from "@/lib/store";
 import type { Reachout, ReachoutStatus } from "@/types";
 
@@ -27,11 +28,13 @@ function formatDate(iso?: string) {
 export function ReachoutsTable({ reachouts }: { reachouts: Reachout[] }) {
   const { state, dispatch } = useStore();
   const [editReachout, setEditReachout] = useState<Reachout | null>(null);
+  const [detailReachout, setDetailReachout] = useState<Reachout | null>(null);
   const [pitchTarget, setPitchTarget] = useState<{
     reachoutId: string;
     venueName: string;
     venueCity?: string;
     venueCountry?: string;
+    contactEmail?: string;
   } | null>(null);
 
   function handleStatusChange(reachoutId: string, status: ReachoutStatus) {
@@ -66,7 +69,14 @@ export function ReachoutsTable({ reachouts }: { reachouts: Reachout[] }) {
                 const contact = r.contactId ? getContactById(state, r.contactId) : undefined;
                 return (
                   <TableRow key={r.id} className="border-border/50 transition-colors hover:bg-accent/30">
-                    <TableCell className="font-medium">{venue?.name ?? "\u2014"}</TableCell>
+                    <TableCell>
+                      <button
+                        onClick={() => setDetailReachout(r)}
+                        className="font-medium text-left hover:text-violet-400 transition-colors"
+                      >
+                        {venue?.name ?? "\u2014"}
+                      </button>
+                    </TableCell>
                     <TableCell>{contact?.name ?? "\u2014"}</TableCell>
                     <TableCell className="capitalize">{r.method ?? "\u2014"}</TableCell>
                     <TableCell className="whitespace-nowrap">{formatDate(r.sentAt)}</TableCell>
@@ -83,6 +93,7 @@ export function ReachoutsTable({ reachouts }: { reachouts: Reachout[] }) {
                               venueName: venue?.name ?? "Unknown Venue",
                               venueCity: venue?.city,
                               venueCountry: venue?.country,
+                              contactEmail: contact?.email,
                             })
                           }
                           className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-violet-400 transition-colors hover:bg-violet-500/10"
@@ -114,6 +125,7 @@ export function ReachoutsTable({ reachouts }: { reachouts: Reachout[] }) {
           venueName={pitchTarget.venueName}
           venueCity={pitchTarget.venueCity}
           venueCountry={pitchTarget.venueCountry}
+          contactEmail={pitchTarget.contactEmail}
           artistName={state.artist.name}
           artistGenre={state.artist.genre}
           onClose={() => setPitchTarget(null)}
@@ -122,6 +134,10 @@ export function ReachoutsTable({ reachouts }: { reachouts: Reachout[] }) {
 
       {editReachout && (
         <ReachoutForm open={true} onClose={() => setEditReachout(null)} reachout={editReachout} />
+      )}
+
+      {detailReachout && (
+        <ReachoutDetail open={true} onClose={() => setDetailReachout(null)} reachout={detailReachout} />
       )}
     </>
   );

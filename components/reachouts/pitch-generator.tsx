@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Loader2, Copy, Check, X } from "lucide-react";
+import { Sparkles, Loader2, Copy, Check, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmailComposer } from "@/components/email/email-composer";
+import { useStore } from "@/lib/store";
 
 interface PitchGeneratorProps {
   reachoutId: string;
@@ -11,21 +13,26 @@ interface PitchGeneratorProps {
   venueCountry?: string;
   artistName: string;
   artistGenre?: string;
+  contactEmail?: string;
   onClose: () => void;
 }
 
 export function PitchGenerator({
+  reachoutId,
   venueName,
   venueCity,
   venueCountry,
   artistName,
   artistGenre,
+  contactEmail,
   onClose,
 }: PitchGeneratorProps) {
+  const { state, dispatch } = useStore();
   const [loading, setLoading] = useState(false);
   const [pitch, setPitch] = useState<{ subject: string; body: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showComposer, setShowComposer] = useState(false);
 
   async function handleGenerate() {
     setLoading(true);
@@ -117,7 +124,7 @@ export function PitchGenerator({
           </div>
         )}
 
-        {pitch && (
+        {pitch && !showComposer && (
           <div className="mt-4 space-y-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground">Subject</label>
@@ -140,7 +147,31 @@ export function PitchGenerator({
                 <Sparkles className="mr-1.5 h-4 w-4" />
                 Regenerate
               </Button>
+              <Button
+                onClick={() => setShowComposer(true)}
+                size="sm"
+                className="bg-violet-600 hover:bg-violet-700"
+              >
+                <Send className="mr-1.5 h-4 w-4" />
+                Send Email
+              </Button>
             </div>
+          </div>
+        )}
+
+        {pitch && showComposer && (
+          <div className="mt-4">
+            <EmailComposer
+              orgId={state.orgId}
+              reachoutId={reachoutId}
+              defaultTo={contactEmail ?? ""}
+              defaultSubject={pitch.subject}
+              defaultBody={pitch.body}
+              onClose={() => setShowComposer(false)}
+              onSent={() => {
+                dispatch({ type: "UPDATE_REACHOUT_STATUS", payload: { id: reachoutId, status: "sent" } });
+              }}
+            />
           </div>
         )}
       </div>
