@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, MapPin, Mail, Music, Compass, Send } from "lucide-react";
+import { LayoutDashboard, Calendar, MapPin, Mail, Music, Compass, Send, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/reachouts", label: "Reachouts", icon: Mail },
   { href: "/discover", label: "Discover", icon: Compass },
   { href: "/email", label: "Email", icon: Send },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {

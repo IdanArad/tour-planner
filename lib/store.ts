@@ -125,8 +125,13 @@ function mapArtist(row: Record<string, unknown>): Artist {
     id: row.id as string,
     name: row.name as string,
     genre: row.genre as string | undefined,
+    bio: row.bio as string | undefined,
     contactEmail: row.contact_email as string | undefined,
     contactPhone: row.contact_phone as string | undefined,
+    spotifyUrl: row.spotify_url as string | undefined,
+    instagramUrl: row.instagram_url as string | undefined,
+    websiteUrl: row.website_url as string | undefined,
+    hometown: row.hometown as string | undefined,
     notes: row.notes as string | undefined,
   };
 }

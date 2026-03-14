@@ -35,8 +35,13 @@ export interface Artist {
   id: string;
   name: string;
   genre?: string;
+  bio?: string;
   contactEmail?: string;
   contactPhone?: string;
+  spotifyUrl?: string;
+  instagramUrl?: string;
+  websiteUrl?: string;
+  hometown?: string;
   notes?: string;
 }
 
