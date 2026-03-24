@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, MapPin, Mail, Music, Compass, Send, Settings } from "lucide-react";
+import { LayoutDashboard, Calendar, Route, MapPin, Mail, Music, Compass, Send, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/shows", label: "Shows", icon: Calendar },
+  { href: "/tours", label: "Tours", icon: Route },
   { href: "/venues", label: "Venues", icon: MapPin },
   { href: "/reachouts", label: "Reachouts", icon: Mail },
   { href: "/discover", label: "Discover", icon: Compass },

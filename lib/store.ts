@@ -41,6 +41,7 @@ type Action =
   | { type: "DELETE_REACHOUT"; payload: string }
   | { type: "ADD_CONTACT"; payload: { venueId: string; contact: Contact } }
   | { type: "DELETE_CONTACT"; payload: { venueId: string; contactId: string } }
+  | { type: "DELETE_TOUR"; payload: string }
   | { type: "REFRESH" };
 
 // --- DB row → app type mappers ---
@@ -297,6 +298,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 ? { ...v, contacts: v.contacts.filter((c) => c.id !== action.payload.contactId) }
                 : v
             ),
+          }));
+          break;
+        }
+        case "DELETE_TOUR": {
+          setState((prev) => ({
+            ...prev,
+            tours: prev.tours.filter((t) => t.id !== action.payload),
           }));
           break;
         }
