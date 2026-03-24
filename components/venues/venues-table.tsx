@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, UserPlus } from "lucide-react";
+import { MapPin, Pencil, UserPlus } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -15,7 +15,7 @@ import { ContactForm } from "@/components/contacts/contact-form";
 import { useStore } from "@/lib/store";
 import type { Venue } from "@/types";
 
-export function VenuesTable() {
+export function VenuesTable({ onAdd }: { onAdd?: () => void }) {
   const { state } = useStore();
   const [editVenue, setEditVenue] = useState<Venue | null>(null);
   const [contactVenueId, setContactVenueId] = useState<string | null>(null);
@@ -37,8 +37,19 @@ export function VenuesTable() {
           <TableBody>
             {state.venues.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  No venues found
+                <TableCell colSpan={6} className="h-32 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <MapPin className="h-8 w-8 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">No venues found</p>
+                    {onAdd && (
+                      <button
+                        onClick={onAdd}
+                        className="mt-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                      >
+                        Add Venue
+                      </button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

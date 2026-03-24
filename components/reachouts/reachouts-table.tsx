@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Sparkles } from "lucide-react";
+import { Mail, Pencil, Sparkles } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -25,7 +25,7 @@ function formatDate(iso?: string) {
   });
 }
 
-export function ReachoutsTable({ reachouts }: { reachouts: Reachout[] }) {
+export function ReachoutsTable({ reachouts, onAdd }: { reachouts: Reachout[]; onAdd?: () => void }) {
   const { state, dispatch } = useStore();
   const [editReachout, setEditReachout] = useState<Reachout | null>(null);
   const [detailReachout, setDetailReachout] = useState<Reachout | null>(null);
@@ -59,8 +59,19 @@ export function ReachoutsTable({ reachouts }: { reachouts: Reachout[] }) {
           <TableBody>
             {reachouts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  No reachouts found
+                <TableCell colSpan={7} className="h-32 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Mail className="h-8 w-8 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">No reachouts found</p>
+                    {onAdd && (
+                      <button
+                        onClick={onAdd}
+                        className="mt-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                      >
+                        New Reachout
+                      </button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

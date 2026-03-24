@@ -23,7 +23,7 @@ export default function VenuesPage() {
           Add Venue
         </button>
       </div>
-      <VenuesTable />
+      <VenuesTable onAdd={() => setShowForm(true)} />
       <VenueForm open={showForm} onClose={() => setShowForm(false)} />
     </div>
   );

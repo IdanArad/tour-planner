@@ -65,7 +65,7 @@ export default function ReachoutsPage() {
         </TabsList>
       </Tabs>
 
-      <ReachoutsTable reachouts={sorted} />
+      <ReachoutsTable reachouts={sorted} onAdd={() => setShowForm(true)} />
 
       <ReachoutForm open={showForm} onClose={() => setShowForm(false)} />
     </div>

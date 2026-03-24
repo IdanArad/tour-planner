@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { CalendarPlus, Pencil } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -27,7 +27,7 @@ function formatType(type: string) {
   return type.replace("_", "-").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function ShowsTable({ shows }: { shows: Show[] }) {
+export function ShowsTable({ shows, onAdd }: { shows: Show[]; onAdd?: () => void }) {
   const { state, dispatch } = useStore();
   const [editShow, setEditShow] = useState<Show | null>(null);
 
@@ -53,8 +53,19 @@ export function ShowsTable({ shows }: { shows: Show[] }) {
           <TableBody>
             {shows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  No shows found
+                <TableCell colSpan={7} className="h-32 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <CalendarPlus className="h-8 w-8 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">No shows found</p>
+                    {onAdd && (
+                      <button
+                        onClick={onAdd}
+                        className="mt-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                      >
+                        New Show
+                      </button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

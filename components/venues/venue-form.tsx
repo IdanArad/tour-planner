@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useStore } from "@/lib/store";
 import { addVenue, updateVenue, deleteVenue } from "@/lib/actions/venues";
 import type { Venue } from "@/types";
@@ -22,6 +23,7 @@ export function VenueForm({ open, onClose, venue }: VenueFormProps) {
   const [capacity, setCapacity] = useState(venue?.capacity?.toString() ?? "");
   const [notes, setNotes] = useState(venue?.notes ?? "");
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -157,7 +159,7 @@ export function VenueForm({ open, onClose, venue }: VenueFormProps) {
           {isEdit ? (
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setConfirmDelete(true)}
               disabled={saving}
               className="rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
             >
@@ -184,6 +186,14 @@ export function VenueForm({ open, onClose, venue }: VenueFormProps) {
           </div>
         </div>
       </form>
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+        title="Delete Venue"
+        description="This action cannot be undone. The venue and its contacts will be permanently removed."
+        loading={saving}
+      />
     </Dialog>
   );
 }

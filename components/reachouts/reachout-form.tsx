@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Dialog } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useStore } from "@/lib/store";
 import { addReachout, updateReachout, deleteReachout } from "@/lib/actions/reachouts";
 import type { Reachout, ReachoutMethod } from "@/types";
@@ -30,6 +31,7 @@ export function ReachoutForm({ open, onClose, reachout, prefilledVenueId }: Reac
   const [tourId, setTourId] = useState(reachout?.tourId ?? "");
   const [notes, setNotes] = useState(reachout?.notes ?? "");
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
 
   const contactsForVenue = useMemo(() => {
@@ -174,7 +176,7 @@ export function ReachoutForm({ open, onClose, reachout, prefilledVenueId }: Reac
           {isEdit ? (
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setConfirmDelete(true)}
               disabled={saving}
               className="rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
             >
@@ -201,6 +203,14 @@ export function ReachoutForm({ open, onClose, reachout, prefilledVenueId }: Reac
           </div>
         </div>
       </form>
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+        title="Delete Reachout"
+        description="This action cannot be undone. The reachout record will be permanently removed."
+        loading={saving}
+      />
     </Dialog>
   );
 }

@@ -54,7 +54,7 @@ export default function ShowsPage() {
         </TabsList>
       </Tabs>
 
-      <ShowsTable shows={filtered} />
+      <ShowsTable shows={filtered} onAdd={() => setShowForm(true)} />
 
       <ShowForm open={showForm} onClose={() => setShowForm(false)} />
     </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { CalendarPlus } from "lucide-react";
 import { ShowStatusBadge } from "@/components/shows/show-status-badge";
 import { useStore, getUpcomingShows, getVenueById } from "@/lib/store";
 import type { ShowStatus } from "@/types";
@@ -19,7 +21,16 @@ export function UpcomingShows() {
       </div>
       <div className="p-5">
         {upcoming.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No upcoming shows</p>
+          <div className="flex flex-col items-center gap-2 py-4">
+            <CalendarPlus className="h-8 w-8 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">No upcoming shows</p>
+            <Link
+              href="/shows"
+              className="mt-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              New Show
+            </Link>
+          </div>
         ) : (
           <div className="space-y-4">
             {upcoming.map((show) => {

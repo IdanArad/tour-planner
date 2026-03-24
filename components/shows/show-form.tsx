@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useStore } from "@/lib/store";
 import { addShow } from "@/lib/actions/shows";
 import { updateShow } from "@/lib/actions/shows";
@@ -44,6 +45,7 @@ export function ShowForm({ open, onClose, show }: ShowFormProps) {
   const [guarantee, setGuarantee] = useState(show?.guarantee?.toString() ?? "");
   const [notes, setNotes] = useState(show?.notes ?? "");
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -199,7 +201,7 @@ export function ShowForm({ open, onClose, show }: ShowFormProps) {
           {isEdit ? (
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setConfirmDelete(true)}
               disabled={saving}
               className="rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
             >
@@ -226,6 +228,14 @@ export function ShowForm({ open, onClose, show }: ShowFormProps) {
           </div>
         </div>
       </form>
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+        title="Delete Show"
+        description="This action cannot be undone. The show will be permanently removed."
+        loading={saving}
+      />
     </Dialog>
   );
 }
