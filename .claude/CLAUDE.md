@@ -32,8 +32,8 @@ npm run test:local   # Full suite against a local Supabase stack (needs Docker) 
 - **shadcn/ui** (base-nova style, lucide-react icons, NOT Radix — uses @base-ui/react)
 - **framer-motion** + **@tsparticles** for sparkles effect
 - **Supabase** (PostgreSQL + Auth + RLS + Storage) for multi-tenant persistence
-- **Claude API** (Anthropic SDK) for AI pitch generation and venue scoring (planned)
-- **Resend** for email sending + webhook tracking (planned)
+- **Claude API** (Anthropic SDK) for AI pitch generation and venue scoring
+- **Email**: all sending goes through `sendMail()` in `lib/email/client.ts` — SMTP (nodemailer) when `SMTP_USER`/`SMTP_HOST` is set, otherwise Resend. `EMAIL_FROM` sets the sender. For Google Workspace: `SMTP_USER=<mailbox>`, `SMTP_PASSWORD=<app password>` (host/port default to smtp.gmail.com:465). Delivery/open tracking only exists on the Resend path (webhook).
 - Path alias: `@/*` maps to project root
 
 ## Architecture

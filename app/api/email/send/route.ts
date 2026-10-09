@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getResendClient } from "@/lib/email/client";
+import { sendMail } from "@/lib/email/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,22 +46,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send via Resend
-    const resend = getResendClient();
-    const { data: sent, error: sendError } = await resend.emails.send({
-      from: "Tour Planner <noreply@tourplanner.app>",
-      to: to_email,
-      subject,
-      html: body_html,
-    });
+    const sent = await sendMail({ to: to_email, subject, html: body_html });
 
-    if (sendError) {
+    if (sent.error) {
       await supabase
         .from("email_messages")
-        .update({ status: "failed", error_message: sendError.message })
+        .update({ status: "failed", error_message: sent.error })
         .eq("id", message.id);
 
-      return NextResponse.json({ error: sendError.message }, { status: 500 });
+      return NextResponse.json({ error: sent.error }, { status: 500 });
     }
 
     // Update status to sent with external_id
@@ -69,12 +62,12 @@ export async function POST(request: NextRequest) {
       .from("email_messages")
       .update({
         status: "sent",
-        external_id: sent?.id ?? null,
+        external_id: sent.id,
         sent_at: new Date().toISOString(),
       })
       .eq("id", message.id);
 
-    return NextResponse.json({ success: true, messageId: sent?.id });
+    return NextResponse.json({ success: true, messageId: sent.id });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
