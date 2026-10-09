@@ -19,10 +19,11 @@ npm run test:smoke   # Smoke tests (pages load correctly)
 npm run test:settings # Settings page tests
 npm run test:crud    # CRUD form tests
 npm run test:tours   # Tours page tests
+npm run test:email   # Outreach email tests (skipped unless run via test:local)
 npm run test:local   # Full suite against a local Supabase stack (needs Docker) — what CI runs
 ```
 
-`npm run test:local` starts Supabase locally, applies migrations + seed, and creates its own test user; pass Playwright args after `--` (e.g. `npm run test:local -- tours`). The plain `npm run test*` scripts use whatever Supabase `.env.local` points at and need `TEST_EMAIL` / `TEST_PASSWORD` there. CI (`.github/workflows/e2e.yml`) runs `test:local` on every PR and push to main.
+`npm run test:local` starts Supabase locally, applies migrations + seed, and creates its own test user; pass Playwright args after `--` (e.g. `npm run test:local -- tours`). It also points outreach email at a local SMTP sink (`e2e/helpers/fake-smtp.ts`), so the email tests never send real mail, and refuses to start while something is already serving port 3000. The plain `npm run test*` scripts use whatever Supabase `.env.local` points at and need `TEST_EMAIL` / `TEST_PASSWORD` there. CI (`.github/workflows/e2e.yml`) runs `test:local` on every PR and push to main.
 
 ## Stack
 
@@ -32,8 +33,8 @@ npm run test:local   # Full suite against a local Supabase stack (needs Docker) 
 - **shadcn/ui** (base-nova style, lucide-react icons, NOT Radix — uses @base-ui/react)
 - **framer-motion** + **@tsparticles** for sparkles effect
 - **Supabase** (PostgreSQL + Auth + RLS + Storage) for multi-tenant persistence
-- **Claude API** (Anthropic SDK) for AI pitch generation and venue scoring (planned)
-- **Resend** for email sending + webhook tracking (planned)
+- **Claude API** (Anthropic SDK) for AI pitch generation and venue scoring
+- **Email**: all sending goes through `sendMail()` in `lib/email/client.ts` — SMTP (nodemailer) when `SMTP_USER`/`SMTP_HOST` is set, otherwise Resend. `EMAIL_FROM` sets the sender. For Google Workspace: `SMTP_USER=<mailbox>`, `SMTP_PASSWORD=<app password>` (host/port default to smtp.gmail.com:465). Delivery/open tracking only exists on the Resend path (webhook).
 - Path alias: `@/*` maps to project root
 
 ## Architecture

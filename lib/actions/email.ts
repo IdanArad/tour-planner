@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getResendClient } from "@/lib/email/client";
+import { sendMail, validateOutgoingEmail } from "@/lib/email/client";
 
 export async function createTemplate(data: {
   org_id: string;
@@ -58,6 +58,13 @@ export async function sendEmail(data: {
   subject: string;
   body_html: string;
 }) {
+  const invalid = validateOutgoingEmail({
+    to: data.to_email,
+    subject: data.subject,
+    html: data.body_html,
+  });
+  if (invalid) return { error: invalid, message: null };
+
   const supabase = await createClient();
 
   // Create email_message record with queued status
@@ -76,21 +83,18 @@ export async function sendEmail(data: {
 
   if (insertError) return { error: insertError.message, message: null };
 
-  // Send via Resend
-  const resend = getResendClient();
-  const { data: sent, error: sendError } = await resend.emails.send({
-    from: "Tour Planner <noreply@tourplanner.app>",
+  const sent = await sendMail({
     to: data.to_email,
     subject: data.subject,
     html: data.body_html,
   });
 
-  if (sendError) {
+  if (sent.error) {
     await supabase
       .from("email_messages")
-      .update({ status: "failed", error_message: sendError.message })
+      .update({ status: "failed", error_message: sent.error })
       .eq("id", message.id);
-    return { error: sendError.message, message: null };
+    return { error: sent.error, message: null };
   }
 
   // Update with sent status and external_id
@@ -98,11 +102,11 @@ export async function sendEmail(data: {
     .from("email_messages")
     .update({
       status: "sent",
-      external_id: sent?.id ?? null,
+      external_id: sent.id,
       sent_at: new Date().toISOString(),
     })
     .eq("id", message.id);
 
   revalidatePath("/reachouts");
-  return { error: null, message: { ...message, external_id: sent?.id } };
+  return { error: null, message: { ...message, external_id: sent.id } };
 }
