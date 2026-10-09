@@ -4,10 +4,10 @@ test.describe("CRUD — Venues", () => {
   test("can create and delete a venue", async ({ page }) => {
     // Wait for network idle so the store finishes loading from Supabase
     await page.goto("/venues", { waitUntil: "networkidle" });
-    await expect(page.getByRole("button", { name: "Add Venue" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: "Add Venue" }).first()).toBeVisible({ timeout: 10_000 });
 
     // Open form
-    await page.getByRole("button", { name: "Add Venue" }).click();
+    await page.getByRole("button", { name: "Add Venue" }).first().click();
     await expect(page.locator("text=Add a new venue")).toBeVisible();
 
     const venueName = "E2E Test Venue " + Date.now();
@@ -28,6 +28,8 @@ test.describe("CRUD — Venues", () => {
     await row.getByTitle("Edit venue").click();
     await expect(page.locator("text=Edit Venue")).toBeVisible();
     await page.getByRole("button", { name: "Delete" }).click();
+    // Confirm in the nested confirmation dialog
+    await page.locator("[role=dialog]").last().getByRole("button", { name: "Delete" }).click();
 
     // Venue should disappear
     await expect(page.locator(`text=${venueName}`)).not.toBeVisible({ timeout: 5_000 });
@@ -37,9 +39,9 @@ test.describe("CRUD — Venues", () => {
 test.describe("CRUD — Shows", () => {
   test("can open new show form", async ({ page }) => {
     await page.goto("/shows");
-    await expect(page.getByRole("button", { name: "New Show" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: "New Show" }).first()).toBeVisible({ timeout: 10_000 });
 
-    await page.getByRole("button", { name: "New Show" }).click();
+    await page.getByRole("button", { name: "New Show" }).first().click();
     await expect(page.locator("text=Add a new show")).toBeVisible();
 
     // Should have venue select and date input
@@ -54,9 +56,9 @@ test.describe("CRUD — Shows", () => {
 test.describe("CRUD — Reachouts", () => {
   test("can open new reachout form", async ({ page }) => {
     await page.goto("/reachouts");
-    await expect(page.getByRole("button", { name: "New Reachout" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: "New Reachout" }).first()).toBeVisible({ timeout: 10_000 });
 
-    await page.getByRole("button", { name: "New Reachout" }).click();
+    await page.getByRole("button", { name: "New Reachout" }).first().click();
     await expect(page.locator("text=Start a new venue outreach")).toBeVisible();
 
     // Should have venue select

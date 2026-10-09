@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import { loadEnvConfig } from "@next/env";
+
+// Pick up TEST_EMAIL / TEST_PASSWORD from .env.local when running locally
+loadEnvConfig(process.cwd());
 
 export default defineConfig({
   testDir: "./e2e",
@@ -6,7 +10,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 1,
-  reporter: "list",
+  reporter: process.env.CI ? [["list"], ["github"]] : "list",
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
@@ -26,7 +30,7 @@ export default defineConfig({
   webServer: {
     command: "npm run dev",
     url: "http://localhost:3000",
-    reuseExistingServer: true,
-    timeout: 30_000,
+    reuseExistingServer: !process.env.CI,
+    timeout: process.env.CI ? 120_000 : 30_000,
   },
 });
