@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if curl -s -o /dev/null http://localhost:3000; then
+if curl -s -o /dev/null --max-time 5 http://localhost:3000; then
   echo "Port 3000 is in use — stop the running dev server first." >&2
   echo "Playwright would reuse it, and it runs with .env.local (hosted Supabase, real mailbox)." >&2
   exit 1

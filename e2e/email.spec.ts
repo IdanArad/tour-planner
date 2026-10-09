@@ -63,15 +63,47 @@ test.describe("Outreach email over SMTP", () => {
   test("shows the error when the mail server rejects the recipient", async ({ page }) => {
     const dialog = await openComposer(page);
     const to = `nobody-${Date.now()}@${REJECT_DOMAIN}`;
+    const subject = `E2E bounce ${Date.now()}`;
 
     await dialog.getByPlaceholder("booking@venue.com").fill(to);
-    await dialog.getByPlaceholder("Booking inquiry — [Artist Name]").fill("E2E rejected pitch");
+    await dialog.getByPlaceholder("Booking inquiry — [Artist Name]").fill(subject);
     await dialog.getByPlaceholder("Write your email...").fill("This one should bounce");
     await dialog.getByRole("button", { name: "Send Email" }).click();
 
-    await expect(dialog.locator("text=/rejected/i")).toBeVisible({ timeout: 15_000 });
+    // Scoped to the composer's error box — earlier runs leave failed rows in the history
+    await expect(dialog.getByRole("alert")).toContainText(/rejected/i, { timeout: 15_000 });
     // Composer stays open so the user can fix the address and retry
     await expect(dialog.getByPlaceholder("booking@venue.com")).toHaveValue(to);
-    expect(smtp.messages.filter((m) => m.data.includes("E2E rejected pitch"))).toHaveLength(0);
+    expect(smtp.messages.filter((m) => m.data.includes(subject))).toHaveLength(0);
+  });
+
+  test("refuses anything but a single recipient address", async ({ page }) => {
+    const dialog = await openComposer(page);
+    const subject = `E2E multi ${Date.now()}`;
+
+    await dialog
+      .getByPlaceholder("booking@venue.com")
+      .fill("one@tour-planner.test, two@tour-planner.test");
+    await dialog.getByPlaceholder("Booking inquiry — [Artist Name]").fill(subject);
+    await dialog.getByPlaceholder("Write your email...").fill("Should never leave the app");
+    await dialog.getByRole("button", { name: "Send Email" }).click();
+
+    await expect(dialog.getByRole("alert")).toContainText("single valid email address");
+    expect(smtp.messages.filter((m) => m.data.includes(subject))).toHaveLength(0);
+  });
+
+  test("send route rejects a non-string body", async ({ page }) => {
+    // nodemailer would otherwise load { path } from the server's disk
+    const res = await page.request.post("/api/email/send", {
+      data: {
+        org_id: "00000000-0000-0000-0000-000000000001",
+        to_email: "booker@tour-planner.test",
+        subject: "E2E file read",
+        body_html: { path: "package.json" },
+      },
+    });
+
+    expect(res.status()).toBe(400);
+    expect(smtp.messages.filter((m) => m.data.includes("E2E file read"))).toHaveLength(0);
   });
 });

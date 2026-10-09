@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { sendMail } from "@/lib/email/client";
+import { sendMail, validateOutgoingEmail } from "@/lib/email/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,6 +23,11 @@ export async function POST(request: NextRequest) {
         { error: "Missing required fields: org_id, to_email, subject, body_html" },
         { status: 400 }
       );
+    }
+
+    const invalid = validateOutgoingEmail({ to: to_email, subject, html: body_html });
+    if (invalid) {
+      return NextResponse.json({ error: invalid }, { status: 400 });
     }
 
     // Create email_message record (queued)

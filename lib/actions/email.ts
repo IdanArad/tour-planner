@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { sendMail } from "@/lib/email/client";
+import { sendMail, validateOutgoingEmail } from "@/lib/email/client";
 
 export async function createTemplate(data: {
   org_id: string;
@@ -58,6 +58,13 @@ export async function sendEmail(data: {
   subject: string;
   body_html: string;
 }) {
+  const invalid = validateOutgoingEmail({
+    to: data.to_email,
+    subject: data.subject,
+    html: data.body_html,
+  });
+  if (invalid) return { error: invalid, message: null };
+
   const supabase = await createClient();
 
   // Create email_message record with queued status
