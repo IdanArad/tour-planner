@@ -12,6 +12,7 @@
     "test:settings": "npx playwright test settings",
     "test:crud": "npx playwright test crud",
     "test:tours": "npx playwright test tours",
+    "test:email": "npx playwright test email",
     "test:local": "bash scripts/e2e-local.sh"
   },
   "dependencies": {
