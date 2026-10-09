@@ -5,25 +5,32 @@ test.describe("Smoke tests — core pages load", () => {
     await page.goto("/");
     await expect(page.locator("h1")).toContainText("Tour Planner");
     // Stats card header should be visible
-    await expect(page.locator("p").filter({ hasText: /^Upcoming Shows$/ })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("p").filter({ hasText: /^Upcoming Shows$/ }).first()).toBeVisible({ timeout: 10_000 });
   });
 
+  // Header buttons share their label with the empty-state CTA, hence .first()
   test("shows page loads", async ({ page }) => {
     await page.goto("/shows");
     await expect(page.locator("h1")).toContainText("Shows");
-    await expect(page.getByRole("button", { name: "New Show" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "New Show" }).first()).toBeVisible();
   });
 
   test("venues page loads", async ({ page }) => {
     await page.goto("/venues");
     await expect(page.locator("h1")).toContainText("Venues");
-    await expect(page.getByRole("button", { name: "Add Venue" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add Venue" }).first()).toBeVisible();
   });
 
   test("reachouts page loads", async ({ page }) => {
     await page.goto("/reachouts");
     await expect(page.locator("h1")).toContainText("Reachouts");
-    await expect(page.getByRole("button", { name: "New Reachout" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "New Reachout" }).first()).toBeVisible();
+  });
+
+  test("tours page loads", async ({ page }) => {
+    await page.goto("/tours");
+    await expect(page.locator("h1")).toContainText("Tours");
+    await expect(page.getByRole("button", { name: "New Tour" }).first()).toBeVisible();
   });
 
   test("discover page loads", async ({ page }) => {
